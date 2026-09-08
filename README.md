@@ -21,7 +21,7 @@ I noticed that in `main.cpp` of the base code, we have the following code in `in
     return false;
   }
 ```
-From what I've seen in the docs, `cudaGetDeviceCount` can never return a value below 0. I wanted to ask if (gpuDevice > device_count) was meant to be (gpuDevice >= device_count). I understand that we set gpuDevice to 0 because we want to use the first device, but this if check looks like it shouldn't do anything unless we change the equality to >=. 
+From what I've seen in the docs, `cudaGetDeviceCount` can never return a value below 0. I wanted to ask if `gpuDevice > device_count` was meant to be `gpuDevice >= device_count`. I understand that we set `gpuDevice` to 0 because we want to use the first device, but this `if` check seemed like dead code, unless the equality was meant to be `>=`. 
 I apologize if this was already pointed out by someone else, or if the code is correct!
 
 ### (TODO: Your README)
