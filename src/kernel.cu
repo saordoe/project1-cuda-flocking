@@ -14,6 +14,7 @@
 #include <thrust/random.h>
 #include <thrust/device_vector.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
 // LOOK-2.1 potentially useful for doing grid-based neighbor search
@@ -186,6 +187,11 @@ void Boids::initSimulation(int N) {
   gridMinimum.z -= halfGridWidth;
 
   // TODO-2.1 TODO-2.3 - Allocate additional buffers here.
+  CUDA(cudaMalloc((void**)&dev_particleArrayIndices, N));
+  CUDA(cudaMalloc((void**)&dev_particleGridIndices, N));
+  CUDA(cudaMalloc((void**)&dev_gridCellStartIndices, N));
+  CUDA(cudaMalloc((void**)&dev_gridCellEndIndices, N));
+
   cudaDeviceSynchronize();
 }
 
@@ -247,10 +253,49 @@ void Boids::copyBoidsToVBO(float *vbodptr_positions, float *vbodptr_velocities) 
 * in the `pos` and `vel` arrays.
 */
 __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel) {
-  // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
-  // Rule 2: boids try to stay a distance d away from each other
-  // Rule 3: boids try to match the speed of surrounding boids
-  return glm::vec3(0.0f, 0.0f, 0.0f);
+
+  glm::vec3 rule1;
+  glm::vec3 rule2;
+  glm::vec3 rule3;
+
+  glm::vec3 perceivedCOM;
+  glm::vec3 offset;
+  glm::vec3 perceivedVel;
+  int numNeighbors = 0;
+
+  // for each not iSelf
+  for (int i = 0; i < N; i++) {
+    if (i == iSelf) continue;
+
+    // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+    if (distance(pos[i], pos[iSelf]) < rule1Distance) {
+      perceivedCOM += pos[i];
+      numNeighbors++;
+    };
+
+    // Rule 2: boids try to stay a distance d away from each other
+    if (distance(pos[i], pos[iSelf]) < rule2Distance) {
+      offset -= pos[i] - pos[iSelf];
+    };
+
+    // Rule 3: boids try to match the speed of surrounding boids
+    if (distance(pos[i], pos[iSelf]) < rule3Distance) {
+      perceivedVel += vel[i];
+    };
+  }
+
+  // Process rule 1 (guard against divide-by-zero when there are no neighbors)
+  if (numNeighbors > 0) {
+    perceivedCOM /= numNeighbors;
+    rule1 = (perceivedCOM - pos[iSelf]) * rule1Scale;
+    perceivedVel /= numNeighbors;
+    rule3 = perceivedVel * rule3Scale;
+  }
+  rule2 = offset * rule2Scale;
+
+  // glm::vec3 final = vel[iSelf] + rule1 + rule2 + rule3;
+  // std::cout << glm::to_string(final) << std::endl;
+  return vel[iSelf] + rule1 + rule2 + rule3;
 }
 
 /**
@@ -262,6 +307,15 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
   // Compute a new velocity based on pos and vel1
   // Clamp the speed
   // Record the new velocity into vel2. Question: why NOT vel1?
+
+  int index = threadIdx.x + blockDim.x * blockIdx.x;
+
+  glm::vec3 velNew = computeVelocityChange(N, index, pos, vel1);
+  if (glm::length(velNew) > maxSpeed) {
+    velNew = glm::normalize(velNew) * maxSpeed;
+  };
+
+  vel2[index] = velNew;
 }
 
 /**
@@ -306,6 +360,12 @@ __global__ void kernComputeIndices(int N, int gridResolution,
     // - Label each boid with the index of its grid cell.
     // - Set up a parallel array of integer indices as pointers to the actual
     //   boid data in pos and vel1/vel2
+    int index = threadIdx.x + blockDim.x * blockIdx.x; 
+
+    if (index >= N) return;
+
+    // convret pos[index] to grid cell coord
+    int gridCell = (pos[index] - gridMin)
 }
 
 // LOOK-2.1 Consider how this could be useful for indicating that a cell
@@ -365,7 +425,16 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 */
 void Boids::stepSimulationNaive(float dt) {
   // TODO-1.2 - use the kernels you wrote to step the simulation forward in time.
+  // blocksPerGrid, threadsperblock
+  dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
+  kernUpdateVelocityBruteForce<<<fullBlocksPerGrid, blockSize>>>(numObjects, dev_pos, dev_vel1, dev_vel2);
+  checkCUDAErrorWithLine("kernUpdateVelocityBruteForce fail");
+
+  kernUpdatePos<<<fullBlocksPerGrid, blockSize>>>(numObjects, dt, dev_pos, dev_vel2);
+  checkCUDAErrorWithLine("kernUpdatePos fail");
+
   // TODO-1.2 ping-pong the velocity buffers
+  std::swap(dev_vel1, dev_vel2);
 }
 
 void Boids::stepSimulationScatteredGrid(float dt) {
@@ -407,6 +476,10 @@ void Boids::endSimulation() {
   cudaFree(dev_pos);
 
   // TODO-2.1 TODO-2.3 - Free any additional buffers here.
+  cudaFree(dev_particleArrayIndices);
+  cudaFree(dev_particleGridIndices);
+  cudaFree(dev_gridCellStartIndices);
+  cudaFree(dev_gridCellEndIndices);
 }
 
 void Boids::unitTest() {
