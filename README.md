@@ -1,9 +1,10 @@
 **University of Pennsylvania, CIS 5650: GPU Programming and Architecture,
 Project 1 - Flocking**
 
-* (TODO) YOUR NAME HERE
-  * (TODO) [LinkedIn](), [personal website](), [twitter](), etc.
-* Tested on: (TODO) Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Jimin Choi
+  * [LinkedIn](https://linkedin.com/in/jiminchoi4) | [Personal Website](https://jiminchoi.com/) | [X](https://x.com/saordoe)
+* Tested on: Windows 11 Education, i9-12900F @ 2.40 GHz 64GB, NVIDIA GeForce RTX 3090 24GB (Lab Computer)
+* GPU Compute Compatibility: 8.6
 
 ### (TODO: Your README)
 
