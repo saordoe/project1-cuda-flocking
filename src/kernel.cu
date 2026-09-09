@@ -460,8 +460,8 @@ __global__ void kernUpdateVelNeighborSearchScattered(
   glm::vec3 boidPosWithinCell = boidPos - (cellGridMin + glm::vec3(x, y, z) * cellWidth);
 
   int xOffset = (boidPosWithinCell.x < cellWidth * 0.5f) ? -1 : 1;
-  int yOffset = (boidPosWithinCell.x < cellWidth * 0.5f) ? -1 : 1;
-  int zOffset = (boidPosWithinCell.x < cellWidth * 0.5f) ? -1 : 1;
+  int yOffset = (boidPosWithinCell.y < cellWidth * 0.5f) ? -1 : 1;
+  int zOffset = (boidPosWithinCell.z < cellWidth * 0.5f) ? -1 : 1;
 
   glm::vec3 perceivedCOM;
   glm::vec3 offset;
@@ -486,6 +486,8 @@ __global__ void kernUpdateVelNeighborSearchScattered(
         int neighborCell = gridIndex3Dto1D(nx, ny, nz, cellsPerAxis);
         int start = gridCellStartIndices[neighborCell];
         int end = gridCellEndIndices[neighborCell];
+
+        if (start == -1) continue;
 
         // for all indices in gridArray marked by start/endarray
         for (int i = start; i < end + 1; i++) {
