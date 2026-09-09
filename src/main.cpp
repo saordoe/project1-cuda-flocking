@@ -2,7 +2,7 @@
 * @file      main.cpp
 * @brief     Example Boids flocking simulation for CIS 5650
 * @authors   Liam Boone, Kai Ninomiya, Kangning (Gary) Li
-* @date      2013-2017
+* @date       2013-2017
 * @copyright University of Pennsylvania
 */
 
@@ -23,11 +23,11 @@
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
 #define VISUALIZE 1
-#define UNIFORM_GRID 0
+#define UNIFORM_GRID 1
 #define COHERENT_GRID 0
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 50000;
+const int N_FOR_VIS = 2000;
 const float DT = 0.2f;
 
 /**
