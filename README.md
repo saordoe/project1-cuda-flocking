@@ -30,12 +30,12 @@ I apologize if this was already pointed out by someone else, or if the code is c
 
 ### 50K Boids (DT = 0.08)
 <p align="center">
-  <img src="images/cudaBoids1.gif" alt="boids_gif">
+  <img src="images/cudaBoids1small.gif" alt="boids_gif">
 </p>
 
 ### 50K Boids (DT = 0.1)
 <p align="center">
-  <img src="images/cudaBoids5.gif" alt="boids_gif">
+  <img src="images/cudaBoids5small.gif" alt="boids_gif">
 </p>
 
 ### 20K Boids (DT = 0.1)
@@ -52,5 +52,22 @@ We explored three separate approaches to recreating [Conard Parker's](http://www
 
 We then explored two optimizations: a scattered uniform grid, which buckets boids into grid cells and only checks neighboring cells, and a coherent uniform grid, which additionally reshuffles boid position and velocity data to be contiguous in memory per cell, improving memory access patterns during neighbor search.
 
-Below are visual charts representing the performance (frames per second) of each implementation as boid count and block size are varied.
+Below are visual charts representing the performance (frames per second) of each implementation as boid count is varied. All versions of the simulation were tested at each 15K boids, 20K boids, 50K boids, and 100K boids.
 
+<p align="center">
+  <img src="images/withoutvis.png" alt="withoutvis">
+</p>
+
+<p align="center">
+  <img src="images/withvis.png" alt="withvis">
+</p>
+
+As expected, performance using the naive approach declines sharply over increased boid count, with as much as a 91.8 percent decrease in FPS between the 20K and 100K simulation results. Performance decline in the coherent and scattered approaches is shown to be much less substantial in comparison, with the coherent model most always performing slightly better than the scattered model with any boid count. Contrast to expectation, for both the coherent and scattered approaches demonstrated a sudden decline in performance when run with 50,000 boids. In fact, both simulations performed better at a 100,000 boid count than at 50,000. 
+
+We ran an analysis this time varying the block sizes, with a boid count fixed at 100K boids.
+
+<p align="center">
+  <img src="images/blocksize.png" alt="blocksize">
+</p>
+
+For all three approaches, there seemed to be common ground in that performance peaked at the lower half of graph, between 64 to 512 threads per block. We can deduce from this performance graph that the work items throughout our program have higher variability in terms of the amount of time it takes to fulfill each work item.
